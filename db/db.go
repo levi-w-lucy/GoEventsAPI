@@ -2,6 +2,7 @@ package db
 
 import (
 	"database/sql"
+	"fmt"
 
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -23,19 +24,17 @@ func InitDB() {
 }
 
 func createTables() {
-	createUsersTable := `
+	tablesMap := make(map[string]string)
+
+	tablesMap["users"] = `
 	CREATE TABLE IF NOT EXISTS users (
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
 		email TEXT NOT NULL UNIQUE,
 		password TEXT NOT NULL
 	)
 	`
-	_, err := DB.Exec(createUsersTable)
-	if err != nil {
-		panic("Could not create users table.")
-	}
 
-	createEventsTable := `
+	tablesMap["events"] = `
 	CREATE TABLE IF NOT EXISTS events (
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
 		name TEXT NOT NULL,
@@ -47,8 +46,23 @@ func createTables() {
 	)
 	`
 
-	_, err = DB.Exec(createEventsTable)
-	if err != nil {
-		panic("Could not create events table.")
+	tablesMap["registrations"] = `
+	CREATE TABLE IF NOT EXISTS registrations (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		event_id INTEGER NOT NULL,
+		user_id INTEGER NOT NULL,
+		FOREIGN KEY (event_id) REFERENCES events(id),
+		FOREIGN KEY(user_id) REFERENCES users(id)
+	)
+	`
+	executeCreate(tablesMap)
+}
+
+func executeCreate(tablesMap map[string]string) {
+	for tableName, command := range tablesMap {
+		_, err := DB.Exec(command)
+		if err != nil {
+			panic(fmt.Sprintf("Could not create %s table.", tableName))
+		}
 	}
 }
